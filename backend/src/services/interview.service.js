@@ -219,6 +219,11 @@ export function submitAnswer(sessionId, questionId, answer, answerType = 'text')
     throw new Error('No more questions available');
   }
   
+  // Verify questionId matches the current question
+  if (currentQuestion.id !== questionId) {
+    throw new Error('Question ID mismatch - answering wrong question');
+  }
+  
   // Store the answer
   session.answers.push({
     questionId,
@@ -233,6 +238,11 @@ export function submitAnswer(sessionId, questionId, answer, answerType = 'text')
   session.currentQuestionIndex++;
   
   const hasMoreQuestions = session.currentQuestionIndex < session.questions.length;
+  
+  // Mark session as completed if this was the last question
+  if (!hasMoreQuestions) {
+    session.status = 'completed';
+  }
   
   return {
     success: true,
