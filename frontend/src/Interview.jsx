@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -18,10 +18,21 @@ const Interview = () => {
     const [retryCount, setRetryCount] = useState(0);
     const MAX_RETRIES = 5;
     const RETRY_DELAY = 2000; // 2 seconds
+    const isFinishingRef = useRef(false); // Prevent duplicate finish calls
 
     const finishInterview = async () => {
+        // Prevent duplicate calls
+        if (isFinishingRef.current) {
+            console.log('⚠️ finishInterview already in progress, skipping duplicate call');
+            return;
+        }
+
         try {
+            isFinishingRef.current = true;
+            console.log('🏁 Finishing interview...');
             setIsLoading(true);
+            setIsCompleted(true); // Immediately mark as completed to prevent showing question again
+            setCurrentQuestion(null); // Clear the current question
 
             const res = await fetch(
                 `http://localhost:3000/api/interview/${sessionId}/end`,
@@ -39,6 +50,8 @@ const Interview = () => {
         } catch (err) {
             console.error(err);
             setError("Failed to evaluate interview");
+            setIsCompleted(false); // Reset if there's an error
+            isFinishingRef.current = false; // Reset the guard on error
         } finally {
             setIsLoading(false);
         }
@@ -48,12 +61,15 @@ const Interview = () => {
     const fetchQuestion = async (isRetry = false) => {
         try {
             setIsLoading(true);
+            console.log('📝 Fetching question...');
             const response = await fetch(`http://localhost:3000/api/interview/${sessionId}/question`);
             const data = await response.json();
 
             if (data.completed) {
+                console.log('✅ Interview completed, finishing...');
                 finishInterview();
             } else if (data.success) {
+                console.log(`📋 Question ${data.questionNumber}/${data.totalQuestions}: ${data.question}`);
                 setCurrentQuestion(data);
                 setIsConnecting(false);
                 setRetryCount(0); // Reset retry count on success
@@ -199,10 +215,13 @@ const Interview = () => {
             const data = await response.json();
 
             if (data.success) {
+                console.log(`✅ Answer submitted. hasMoreQuestions: ${data.hasMoreQuestions}`);
                 setAnswer(''); // Clear the answer
                 if (data.hasMoreQuestions) {
+                    console.log('➡️ Fetching next question...');
                     fetchQuestion(); // Fetch next question
                 } else {
+                    console.log('🏁 No more questions, finishing interview...');
                     finishInterview();
                 }
             } else {
@@ -262,12 +281,6 @@ const Interview = () => {
                     <p className="text-xl mb-8 opacity-60">
                         Thank you for completing the interview. Your responses have been recorded.
                     </p>
-                    <button
-                        onClick={() => navigate('/dashboard')}
-                        className="px-12 py-4 bg-[#1A1A1A] text-[#EAE7DE] text-lg font-bold rounded-full hover:scale-105 transition-all"
-                    >
-                        Back to Dashboard
-                    </button>
                 </motion.div>
             </div>
         );
