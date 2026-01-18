@@ -14,23 +14,27 @@ const Interview = () => {
     const [isRecording, setIsRecording] = useState(false);
     const [isPlayingAudio, setIsPlayingAudio] = useState(false);
     const [mediaRecorder, setMediaRecorder] = useState(null);
+    const [isConnecting, setIsConnecting] = useState(true);
+    const [retryCount, setRetryCount] = useState(0);
+    const MAX_RETRIES = 5;
+    const RETRY_DELAY = 2000; // 2 seconds
 
     const finishInterview = async () => {
         try {
             setIsLoading(true);
 
             const res = await fetch(
-            `http://localhost:3000/api/interview/${sessionId}/end`,
-            { method: "POST" }
+                `http://localhost:3000/api/interview/${sessionId}/end`,
+                { method: "POST" }
             );
 
             const data = await res.json();
 
             navigate(`/results/${sessionId}`, {
-            state: {
-                evaluation: data.evaluation,
-                transcript: data.transcript
-            }
+                state: {
+                    evaluation: data.evaluation,
+                    transcript: data.transcript
+                }
             });
         } catch (err) {
             console.error(err);
@@ -38,10 +42,10 @@ const Interview = () => {
         } finally {
             setIsLoading(false);
         }
-        };
+    };
 
     // Fetch the current question when component mounts or after submitting an answer
-    const fetchQuestion = async () => {
+    const fetchQuestion = async (isRetry = false) => {
         try {
             setIsLoading(true);
             const response = await fetch(`http://localhost:3000/api/interview/${sessionId}/question`);
@@ -51,12 +55,27 @@ const Interview = () => {
                 finishInterview();
             } else if (data.success) {
                 setCurrentQuestion(data);
+                setIsConnecting(false);
+                setRetryCount(0); // Reset retry count on success
             } else {
                 setError(data.error || 'Failed to load question');
+                setIsConnecting(false);
             }
         } catch (err) {
-            setError('Failed to connect to server');
             console.error('Error fetching question:', err);
+
+            // Only retry on initial connection, not on subsequent errors
+            if (isConnecting && retryCount < MAX_RETRIES) {
+                console.log(`Connection attempt ${retryCount + 1}/${MAX_RETRIES} failed. Retrying in ${RETRY_DELAY / 1000}s...`);
+                setRetryCount(prev => prev + 1);
+                setTimeout(() => {
+                    fetchQuestion(true);
+                }, RETRY_DELAY);
+            } else {
+                // Only set error after all retries exhausted
+                setError('Failed to connect to server. Please ensure the backend is running on port 3000.');
+                setIsConnecting(false);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -77,12 +96,12 @@ const Interview = () => {
             const audioBlob = await response.blob();
             const audioUrl = URL.createObjectURL(audioBlob);
             const audio = new Audio(audioUrl);
-            
+
             audio.onended = () => {
                 setIsPlayingAudio(false);
                 URL.revokeObjectURL(audioUrl);
             };
-            
+
             await audio.play();
         } catch (err) {
             console.error('Error playing audio:', err);
@@ -197,6 +216,23 @@ const Interview = () => {
         }
     };
 
+    if (isConnecting && !currentQuestion) {
+        return (
+            <div className="min-h-screen bg-[#EAE7DE] text-[#1A1A1A] flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-16 h-16 border-4 border-[#1A1A1A] border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+                    <h1 className="text-3xl font-serif mb-4">Connecting to server...</h1>
+                    <p className="text-lg opacity-60 mb-2">
+                        {retryCount > 0 ? `Retry attempt ${retryCount}/${MAX_RETRIES}` : 'Establishing connection'}
+                    </p>
+                    <p className="text-sm opacity-40">
+                        Please ensure the backend is running on port 3000
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
     if (error) {
         return (
             <div className="min-h-screen bg-[#EAE7DE] text-[#1A1A1A] flex items-center justify-center">
@@ -254,11 +290,10 @@ const Interview = () => {
                     )}
                     <button
                         onClick={() => setIsVoiceMode(!isVoiceMode)}
-                        className={`px-4 py-2 text-sm font-bold rounded-full transition-all ${
-                            isVoiceMode 
-                                ? 'bg-[#1A1A1A] text-[#EAE7DE]' 
-                                : 'border-2 border-[#1A1A1A] text-[#1A1A1A]'
-                        }`}
+                        className={`px-4 py-2 text-sm font-bold rounded-full transition-all ${isVoiceMode
+                            ? 'bg-[#1A1A1A] text-[#EAE7DE]'
+                            : 'border-2 border-[#1A1A1A] text-[#1A1A1A]'
+                            }`}
                     >
                         {isVoiceMode ? '🎤 Voice Mode' : '⌨️ Text Mode'}
                     </button>
@@ -280,7 +315,7 @@ const Interview = () => {
                             transition={{ duration: 0.6 }}
                             className="w-full text-center mb-12"
                         >
-                            <h1 className="text-5xl md:text-6xl font-serif mb-8 leading-tight">
+                            <h1 className="text-3xl md:text-4xl font-serif mb-6 leading-tight">
                                 {currentQuestion.question}
                             </h1>
                             <p className="text-sm uppercase tracking-widest opacity-40 mb-4">
@@ -349,43 +384,43 @@ const Interview = () => {
                                 onSubmit={handleSubmitAnswer}
                                 className="w-full"
                             >
-                            <div className="relative group mb-8">
-                                <div className="absolute -inset-1 bg-gradient-to-r from-gray-200 to-gray-300 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-                                <textarea
-                                    value={answer}
-                                    onChange={(e) => setAnswer(e.target.value)}
-                                    placeholder="Type your answer here..."
-                                    className="relative w-full h-[300px] bg-[#F4F1E8] p-8 text-lg font-sans rounded-xl border border-[#D1D1D1] focus:border-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A] resize-none transition-all shadow-sm placeholder:opacity-30"
-                                    required
-                                    disabled={isLoading}
-                                />
-                            </div>
+                                <div className="relative group mb-8">
+                                    <div className="absolute -inset-1 bg-gradient-to-r from-gray-200 to-gray-300 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                                    <textarea
+                                        value={answer}
+                                        onChange={(e) => setAnswer(e.target.value)}
+                                        placeholder="Type your answer here..."
+                                        className="relative w-full h-[220px] bg-[#F4F1E8] p-6 text-base font-sans rounded-xl border border-[#D1D1D1] focus:border-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A] resize-none transition-all shadow-sm placeholder:opacity-30"
+                                        required
+                                        disabled={isLoading}
+                                    />
+                                </div>
 
-                            <div className="flex justify-center gap-4">
-                                <button
-                                    type="button"
-                                    onClick={() => navigate('/dashboard')}
-                                    className="px-8 py-4 border-2 border-[#1A1A1A] text-[#1A1A1A] text-lg font-sans font-bold rounded-full hover:bg-[#1A1A1A] hover:text-[#EAE7DE] transition-all"
-                                    disabled={isLoading}
-                                >
-                                    Exit Interview
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={isLoading || !answer.trim()}
-                                    className="px-12 py-4 bg-[#1A1A1A] text-[#EAE7DE] text-lg font-sans font-bold rounded-full hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
-                                >
-                                    {isLoading ? (
-                                        <>
-                                            <span className="w-5 h-5 border-2 border-[#EAE7DE] border-t-transparent rounded-full animate-spin"></span>
-                                            Submitting...
-                                        </>
-                                    ) : (
-                                        "Next Question →"
-                                    )}
-                                </button>
-                            </div>
-                        </motion.form>
+                                <div className="flex justify-center gap-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/dashboard')}
+                                        className="px-8 py-4 border-2 border-[#1A1A1A] text-[#1A1A1A] text-lg font-sans font-bold rounded-full hover:bg-[#1A1A1A] hover:text-[#EAE7DE] transition-all"
+                                        disabled={isLoading}
+                                    >
+                                        Exit Interview
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={isLoading || !answer.trim()}
+                                        className="px-12 py-4 bg-[#1A1A1A] text-[#EAE7DE] text-lg font-sans font-bold rounded-full hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+                                    >
+                                        {isLoading ? (
+                                            <>
+                                                <span className="w-5 h-5 border-2 border-[#EAE7DE] border-t-transparent rounded-full animate-spin"></span>
+                                                Submitting...
+                                            </>
+                                        ) : (
+                                            "Next Question →"
+                                        )}
+                                    </button>
+                                </div>
+                            </motion.form>
                         )}
                     </>
                 ) : null}
