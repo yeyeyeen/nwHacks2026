@@ -1,4 +1,13 @@
-const API_KEY = process.env.GEMINI_API_KEY;
+import { GoogleGenAI } from '@google/genai';
+
+// Initialize Gemini client
+let geminiClient = null;
+function getGeminiClient() {
+  if (!geminiClient) {
+    geminiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  }
+  return geminiClient;
+}
 
 // In-memory storage for interview sessions (use database in production)
 const interviewSessions = new Map();
@@ -78,35 +87,22 @@ Return ONLY valid JSON in this exact format:
 Make questions natural and conversational. Include the question text only, no additional instructions.
 `;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
-      })
-    }
-  );
-
-  const data = await response.json();
-  
-  // Debug logging
-  if (!response.ok) {
-    console.error("Gemini API Error:", data);
-    console.log("⚠️  Using mock questions as fallback");
-    return MOCK_QUESTIONS;
-  }
-  
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-  if (!text) {
-    console.error("No text in Gemini response:", JSON.stringify(data, null, 2));
-    console.log("⚠️  Using mock questions as fallback");
-    return MOCK_QUESTIONS;
-  }
-
   try {
+    const client = getGeminiClient();
+    
+    const response = await client.models.generateContent({
+      model: 'gemini-2.0-flash-exp',
+      contents: prompt
+    });
+
+    const text = response.text;
+    
+    if (!text) {
+      console.error("No text in Gemini response");
+      console.log("⚠️  Using mock questions as fallback");
+      return MOCK_QUESTIONS;
+    }
+
     // Extract JSON from markdown code blocks if present
     let jsonText = text;
     const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
@@ -115,9 +111,9 @@ Make questions natural and conversational. Include the question text only, no ad
     }
     
     const result = JSON.parse(jsonText);
-    return result.questions || [];
+    return result.questions || MOCK_QUESTIONS;
   } catch (e) {
-    console.error("Raw Gemini output:", text);
+    console.error("Gemini API Error:", e.message);
     console.log("⚠️  Using mock questions as fallback");
     return MOCK_QUESTIONS;
   }
