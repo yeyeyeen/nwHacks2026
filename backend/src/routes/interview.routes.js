@@ -8,7 +8,8 @@ import {
   submitAudioAnswer,
   getInterviewSession,
   getAnswers,
-  endInterview
+  endInterview,
+  getTranscript
 } from '../controllers/interview.controller.js';
 
 const router = express.Router();
@@ -50,6 +51,9 @@ router.get('/:sessionId', getInterviewSession);
 
 // Get all answers for a session
 router.get('/:sessionId/answers', getAnswers);
+
+// Get interview transcript
+router.get('/:sessionId/transcript', getTranscript);
 
 // End interview session
 router.post('/:sessionId/end', endInterview);

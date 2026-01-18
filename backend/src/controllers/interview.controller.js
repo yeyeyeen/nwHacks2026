@@ -4,7 +4,8 @@ import {
   submitAnswer,
   getSession,
   getSessionAnswers,
-  endInterviewSession
+  endInterviewSession,
+  buildTranscript
 } from '../services/interview.service.js';
 import { textToSpeech, speechToText } from '../services/elevenlabs.service.js';
 
@@ -261,6 +262,40 @@ export async function endInterview(req, res) {
     console.error('End Interview Error:', error);
     res.status(500).json({ 
       error: 'Failed to end interview',
+      details: error.message 
+    });
+  }
+}
+
+/**
+ * Get interview transcript
+ * GET /api/interview/:sessionId/transcript
+ */
+export async function getTranscript(req, res) {
+  try {
+    const { sessionId } = req.params;
+
+    if (!sessionId) {
+      return res.status(400).json({ error: 'sessionId is required' });
+    }
+
+    const session = getSession(sessionId);
+    const transcript = buildTranscript(sessionId);
+
+    res.json({
+      success: true,
+      sessionId,
+      transcript,
+      role: session.jobSpec?.role,
+      level: session.jobSpec?.level,
+      company: session.jobSpec?.company,
+      totalQuestions: session.totalQuestions,
+      answersSubmitted: session.answersSubmitted
+    });
+  } catch (error) {
+    console.error('Get Transcript Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to get transcript',
       details: error.message 
     });
   }

@@ -299,3 +299,38 @@ export function endInterviewSession(sessionId) {
     completedAt: session.completedAt
   };
 }
+
+/**
+ * Build a formatted transcript from interview session
+ * @param {string} sessionId - Session ID
+ * @returns {string} Formatted transcript
+ */
+export function buildTranscript(sessionId) {
+  const session = interviewSessions.get(sessionId);
+  
+  if (!session) {
+    throw new Error('Session not found');
+  }
+  
+  let transcript = `Interview Transcript\n`;
+  transcript += `===================\n\n`;
+  transcript += `Role: ${session.jobSpec.role}\n`;
+  transcript += `Level: ${session.jobSpec.level}\n`;
+  if (session.jobSpec.company) {
+    transcript += `Company: ${session.jobSpec.company}\n`;
+  }
+  if (session.jobSpec.jobDescription) {
+    transcript += `Job Description: ${session.jobSpec.jobDescription}\n`;
+  }
+  transcript += `Date: ${session.startedAt.toISOString()}\n`;
+  transcript += `\n---\n\n`;
+  
+  session.answers.forEach((answer, idx) => {
+    transcript += `Q${idx + 1}: ${answer.question}\n\n`;
+    transcript += `A${idx + 1}: ${answer.answer}\n\n`;
+    transcript += `(Category: ${answer.category}, Type: ${answer.answerType})\n`;
+    transcript += `\n---\n\n`;
+  });
+  
+  return transcript;
+}
