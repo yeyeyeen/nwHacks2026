@@ -30,7 +30,7 @@ const Auth = () => {
                     className="text-center mb-12"
                 >
                     <div onClick={() => navigate('/')} className="cursor-pointer mb-6 inline-block">
-                        <div className="text-xl font-bold tracking-tighter font-sans uppercase">Inter/View</div>
+                        <div className="text-xl font-bold tracking-tighter font-sans uppercase">HireSignal</div>
                     </div>
 
                     <h1 className="text-5xl font-serif mb-2">

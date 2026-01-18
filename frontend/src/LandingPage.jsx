@@ -14,7 +14,7 @@ const LandingPage = () => {
     return (
         <div className="min-h-screen bg-[#EAE7DE] text-[#1A1A1A] overflow-hidden relative">
             <nav className="fixed top-0 w-full p-8 flex justify-between items-center z-50 mix-blend-difference text-[#EAE7DE]">
-                <div className="text-xl font-bold tracking-tighter font-sans uppercase">Inter/View</div>
+                <div className="text-xl font-bold tracking-tighter font-sans uppercase">HireSignal</div>
                 <div 
                     onClick={() => navigate('/auth')}
                     className="cursor-pointer font-sans uppercase tracking-widest text-sm hover:opacity-70 transition-opacity"

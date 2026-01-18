@@ -293,7 +293,7 @@ const Interview = () => {
                     onClick={() => navigate('/dashboard')}
                     className="text-xl font-bold tracking-tighter font-sans uppercase cursor-pointer hover:opacity-60 transition-opacity"
                 >
-                    Inter/View
+                    HireSignal
                 </div>
                 <div className="flex items-center gap-4">
                     {currentQuestion && (

@@ -51,7 +51,7 @@ const Dashboard = () => {
                     onClick={() => navigate('/')}
                     className="text-xl font-bold tracking-tighter font-sans uppercase cursor-pointer hover:opacity-60 transition-opacity"
                 >
-                    Inter/View
+                    HireSignal
                 </div>
             </nav>
 
