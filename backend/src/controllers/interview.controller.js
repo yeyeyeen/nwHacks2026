@@ -4,9 +4,11 @@ import {
   submitAnswer,
   getSession,
   getSessionAnswers,
-  endInterviewSession
+  endInterviewSession,
+  buildTranscriptFromSession
 } from '../services/interview.service.js';
 import { textToSpeech, speechToText } from '../services/elevenlabs.service.js';
+import { evaluateWithGemini } from '../services/gemini.service.js';
 
 /**
  * Start a new interview session

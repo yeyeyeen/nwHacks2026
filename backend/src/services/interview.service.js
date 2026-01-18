@@ -254,15 +254,7 @@ export function getSession(sessionId) {
     throw new Error('Session not found');
   }
   
-  return {
-    sessionId: session.sessionId,
-    userId: session.userId,
-    status: session.status,
-    currentQuestionIndex: session.currentQuestionIndex,
-    totalQuestions: session.questions.length,
-    answersSubmitted: session.answers.length,
-    startedAt: session.startedAt
-  };
+  return session;
 }
 
 /**
