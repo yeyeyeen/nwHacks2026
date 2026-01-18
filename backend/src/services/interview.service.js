@@ -1,0 +1,305 @@
+const API_KEY = process.env.GEMINI_API_KEY;
+
+// In-memory storage for interview sessions (use database in production)
+const interviewSessions = new Map();
+
+// Mock questions fallback when Gemini API is unavailable
+const MOCK_QUESTIONS = [
+  {
+    id: "q1",
+    question: "Tell me about yourself and your background.",
+    category: "introduction",
+    expectedDuration: 120
+  },
+  {
+    id: "q2",
+    question: "Why are you interested in this position?",
+    category: "motivation",
+    expectedDuration: 90
+  },
+  {
+    id: "q3",
+    question: "What are your greatest strengths as a developer?",
+    category: "skills",
+    expectedDuration: 90
+  },
+  {
+    id: "q4",
+    question: "Describe a challenging project you worked on and how you overcame obstacles.",
+    category: "problem-solving",
+    expectedDuration: 120
+  },
+  {
+    id: "q5",
+    question: "Where do you see yourself in 5 years?",
+    category: "career-goals",
+    expectedDuration: 90
+  }
+];
+
+/**
+ * Generate interview questions based on job specification
+ * @param {Object} jobSpec - Job specification details
+ * @returns {Array} Array of interview questions
+ */
+export async function generateInterviewQuestions(jobSpec) {
+  const { role, level, jobDescription, company } = jobSpec;
+  
+  const prompt = `
+You are an expert interviewer. Generate 5 basic interview questions for a ${level || 'Mid-level'} ${role || 'Software Engineer'} position${company ? ` at ${company}` : ''}.
+
+${jobDescription ? `Job Description:\n${jobDescription}\n` : ''}
+
+Generate questions that assess:
+1. Communication skills
+2. Problem-solving ability
+3. Technical knowledge (basic)
+4. Cultural fit
+5. Career motivation
+
+Return ONLY valid JSON in this exact format:
+{
+  "questions": [
+    {
+      "id": "q1",
+      "question": "Tell me about yourself and your background.",
+      "category": "introduction",
+      "expectedDuration": 120
+    },
+    {
+      "id": "q2",
+      "question": "Why are you interested in this position?",
+      "category": "motivation",
+      "expectedDuration": 90
+    }
+  ]
+}
+
+Make questions natural and conversational. Include the question text only, no additional instructions.
+`;
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
+    }
+  );
+
+  const data = await response.json();
+  
+  // Debug logging
+  if (!response.ok) {
+    console.error("Gemini API Error:", data);
+    console.log("⚠️  Using mock questions as fallback");
+    return MOCK_QUESTIONS;
+  }
+  
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+  if (!text) {
+    console.error("No text in Gemini response:", JSON.stringify(data, null, 2));
+    console.log("⚠️  Using mock questions as fallback");
+    return MOCK_QUESTIONS;
+  }
+
+  try {
+    // Extract JSON from markdown code blocks if present
+    let jsonText = text;
+    const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+      jsonText = jsonMatch[1];
+    }
+    
+    const result = JSON.parse(jsonText);
+    return result.questions || [];
+  } catch (e) {
+    console.error("Raw Gemini output:", text);
+    console.log("⚠️  Using mock questions as fallback");
+    return MOCK_QUESTIONS;
+  }
+}
+
+/**
+ * Create a new interview session
+ * @param {Object} jobSpec - Job specification
+ * @param {string} userId - User ID
+ * @returns {Object} Session details
+ */
+export async function createInterviewSession(jobSpec, userId) {
+  const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  const questions = await generateInterviewQuestions(jobSpec);
+  
+  const session = {
+    sessionId,
+    userId,
+    jobSpec,
+    questions,
+    currentQuestionIndex: 0,
+    answers: [],
+    startedAt: new Date(),
+    status: 'active'
+  };
+  
+  interviewSessions.set(sessionId, session);
+  
+  return {
+    sessionId,
+    totalQuestions: questions.length,
+    currentQuestion: 0
+  };
+}
+
+/**
+ * Get the next question in the interview
+ * @param {string} sessionId - Session ID
+ * @returns {Object} Question details
+ */
+export function getNextQuestion(sessionId) {
+  const session = interviewSessions.get(sessionId);
+  
+  if (!session) {
+    throw new Error('Session not found');
+  }
+  
+  if (session.status !== 'active') {
+    throw new Error('Session is not active');
+  }
+  
+  const currentIndex = session.currentQuestionIndex;
+  
+  if (currentIndex >= session.questions.length) {
+    session.status = 'completed';
+    return {
+      completed: true,
+      message: 'Interview completed',
+      totalQuestions: session.questions.length
+    };
+  }
+  
+  const question = session.questions[currentIndex];
+  
+  return {
+    questionNumber: currentIndex + 1,
+    totalQuestions: session.questions.length,
+    question: question.question,
+    questionId: question.id,
+    category: question.category,
+    expectedDuration: question.expectedDuration
+  };
+}
+
+/**
+ * Submit an answer to a question
+ * @param {string} sessionId - Session ID
+ * @param {string} questionId - Question ID
+ * @param {string} answer - User's answer (text)
+ * @param {string} answerType - 'text' or 'audio'
+ * @returns {Object} Submission result
+ */
+export function submitAnswer(sessionId, questionId, answer, answerType = 'text') {
+  const session = interviewSessions.get(sessionId);
+  
+  if (!session) {
+    throw new Error('Session not found');
+  }
+  
+  if (session.status !== 'active') {
+    throw new Error('Session is not active');
+  }
+  
+  const currentIndex = session.currentQuestionIndex;
+  const currentQuestion = session.questions[currentIndex];
+  
+  if (currentQuestion.id !== questionId) {
+    throw new Error('Question ID mismatch');
+  }
+  
+  // Store the answer
+  session.answers.push({
+    questionId,
+    question: currentQuestion.question,
+    answer,
+    answerType,
+    category: currentQuestion.category,
+    answeredAt: new Date()
+  });
+  
+  // Move to next question
+  session.currentQuestionIndex++;
+  
+  const hasMoreQuestions = session.currentQuestionIndex < session.questions.length;
+  
+  return {
+    success: true,
+    questionNumber: currentIndex + 1,
+    hasMoreQuestions,
+    nextQuestionNumber: hasMoreQuestions ? session.currentQuestionIndex + 1 : null
+  };
+}
+
+/**
+ * Get interview session details
+ * @param {string} sessionId - Session ID
+ * @returns {Object} Session details
+ */
+export function getSession(sessionId) {
+  const session = interviewSessions.get(sessionId);
+  
+  if (!session) {
+    throw new Error('Session not found');
+  }
+  
+  return {
+    sessionId: session.sessionId,
+    userId: session.userId,
+    status: session.status,
+    currentQuestionIndex: session.currentQuestionIndex,
+    totalQuestions: session.questions.length,
+    answersSubmitted: session.answers.length,
+    startedAt: session.startedAt
+  };
+}
+
+/**
+ * Get all answers for a session
+ * @param {string} sessionId - Session ID
+ * @returns {Array} Array of answers
+ */
+export function getSessionAnswers(sessionId) {
+  const session = interviewSessions.get(sessionId);
+  
+  if (!session) {
+    throw new Error('Session not found');
+  }
+  
+  return session.answers;
+}
+
+/**
+ * End an interview session
+ * @param {string} sessionId - Session ID
+ * @returns {Object} Session summary
+ */
+export function endInterviewSession(sessionId) {
+  const session = interviewSessions.get(sessionId);
+  
+  if (!session) {
+    throw new Error('Session not found');
+  }
+  
+  session.status = 'completed';
+  session.completedAt = new Date();
+  
+  return {
+    sessionId,
+    totalQuestions: session.questions.length,
+    answersSubmitted: session.answers.length,
+    startedAt: session.startedAt,
+    completedAt: session.completedAt
+  };
+}

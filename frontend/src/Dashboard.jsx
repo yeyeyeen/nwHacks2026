@@ -11,13 +11,37 @@ const Dashboard = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
-        // Simulate API call
-        setTimeout(() => {
+        
+        try {
+            // Call your backend interview API
+            const response = await fetch('http://localhost:3000/api/interview/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: 'user_' + Date.now(), // You can get this from auth later
+                    role: 'Software Engineer', // Parse from job description or add input field
+                    level: 'Mid-level', // Parse from job description or add input field
+                    jobDescription: jobDescription
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                console.log('Interview started:', data);
+                // Navigate to interview page with sessionId
+                navigate(`/interview/${data.sessionId}`);
+            } else {
+                alert('Failed to start interview: ' + (data.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error starting interview:', error);
+            alert('Failed to connect to server. Make sure backend is running on port 3000.');
+        } finally {
             setIsLoading(false);
-            // Here we would navigate to the actual interview session
-            console.log("Starting interview with:", jobDescription);
-            alert("Interview Session would start here!");
-        }, 2000);
+        }
     };
 
     return (
