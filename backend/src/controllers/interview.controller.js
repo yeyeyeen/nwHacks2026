@@ -94,7 +94,11 @@ export async function getQuestionAudio(req, res) {
       });
     }
 
-    const audioBuffer = await textToSpeech(questionData.question);
+    // Get the session to retrieve the assigned voice
+    const session = getSession(sessionId);
+    const voiceId = session?.voice?.id;
+
+    const audioBuffer = await textToSpeech(questionData.question, voiceId);
 
     res.set({
       'Content-Type': 'audio/mpeg',

@@ -1,3 +1,5 @@
+import { getRandomVoice } from './elevenlabs.service.js';
+
 const API_KEY = process.env.GEMINI_API_KEY;
 
 // In-memory storage for interview sessions (use database in production)
@@ -134,6 +136,10 @@ export async function createInterviewSession(jobSpec, userId) {
   
   const questions = await generateInterviewQuestions(jobSpec);
   
+  // Randomly select a voice for this interview
+  const selectedVoice = getRandomVoice();
+  console.log(`🎙️  Selected voice for interview: ${selectedVoice.name} (${selectedVoice.description})`);
+  
   const session = {
     sessionId,
     userId,
@@ -142,7 +148,8 @@ export async function createInterviewSession(jobSpec, userId) {
     currentQuestionIndex: 0,
     answers: [],
     startedAt: new Date(),
-    status: 'active'
+    status: 'active',
+    voice: selectedVoice  // Store the selected voice in the session
   };
   
   interviewSessions.set(sessionId, session);
@@ -150,7 +157,12 @@ export async function createInterviewSession(jobSpec, userId) {
   return {
     sessionId,
     totalQuestions: questions.length,
-    currentQuestion: 0
+    currentQuestion: 0,
+    voice: {
+      name: selectedVoice.name,
+      description: selectedVoice.description,
+      gender: selectedVoice.gender
+    }
   };
 }
 

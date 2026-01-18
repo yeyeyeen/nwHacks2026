@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 
 const Interview = () => {
     const { sessionId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const [currentQuestion, setCurrentQuestion] = useState(null);
     const [answer, setAnswer] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -16,6 +17,7 @@ const Interview = () => {
     const [mediaRecorder, setMediaRecorder] = useState(null);
     const [isConnecting, setIsConnecting] = useState(true);
     const [retryCount, setRetryCount] = useState(0);
+    const [voiceInfo, setVoiceInfo] = useState(location.state?.voice || null);
     const MAX_RETRIES = 5;
     const RETRY_DELAY = 2000; // 2 seconds
     const isFinishingRef = useRef(false); // Prevent duplicate finish calls
@@ -296,6 +298,13 @@ const Interview = () => {
                     HireSignal
                 </div>
                 <div className="flex items-center gap-4">
+                    {voiceInfo && (
+                        <div className="text-sm opacity-60 flex items-center gap-2">
+                            <span>🎙️</span>
+                            <span className="font-medium">{voiceInfo.name}</span>
+                            <span className="opacity-50">({voiceInfo.gender})</span>
+                        </div>
+                    )}
                     {currentQuestion && (
                         <div className="text-sm opacity-60">
                             Question {currentQuestion.questionNumber} of {currentQuestion.totalQuestions}
