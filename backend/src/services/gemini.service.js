@@ -9,9 +9,10 @@ export async function evaluateWithGemini({ transcript, role, level }) {
   const prompt = buildEvaluationPrompt({ transcript, role, level });
 
   try {
-    // Try v1 API with gemini-2.0-flash-exp (latest model)
+    // Try v1 API with gemini-2.0-flash (latest model)
+    console.log("CALLING GEMINI API");
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-exp:generateContent?key=${API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
