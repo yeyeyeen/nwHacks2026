@@ -303,3 +303,11 @@ export function endInterviewSession(sessionId) {
     completedAt: session.completedAt
   };
 }
+
+export function buildTranscriptFromSession(session) {
+  return session.answers
+    .map((a, i) => {
+      return `Question ${i + 1}: ${a.question}\nAnswer: ${a.answer}`;
+    })
+    .join("\n\n");
+}

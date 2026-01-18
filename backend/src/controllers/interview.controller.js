@@ -247,21 +247,31 @@ export async function endInterview(req, res) {
     const { sessionId } = req.params;
 
     if (!sessionId) {
-      return res.status(400).json({ error: 'sessionId is required' });
+      return res.status(400).json({ error: "sessionId is required" });
     }
 
-    const summary = endInterviewSession(sessionId);
+    const session = getSession(sessionId);
+
+    // Build transcript
+    const transcript = buildTranscriptFromSession(session);
+
+    // Evaluate
+    const evaluation = await evaluateWithGemini({
+      transcript,
+      role: session.jobSpec.role,
+      level: session.jobSpec.level
+    });
 
     res.json({
       success: true,
-      ...summary,
-      message: 'Interview session ended successfully'
+      sessionId,
+      transcript,
+      evaluation
     });
   } catch (error) {
-    console.error('End Interview Error:', error);
-    res.status(500).json({ 
-      error: 'Failed to end interview',
-      details: error.message 
+    console.error("End Interview Error:", error);
+    res.status(500).json({
+      error: "Failed to end interview and evaluate"
     });
   }
 }
