@@ -17,7 +17,17 @@ export async function evaluateWithGemini({ transcript, role, level }) {
   const data = await response.json();
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
-  return JSON.parse(text);
+  if (!text) {
+    throw new Error("No response from Gemini");
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    console.error("Raw Gemini output:", text);
+    throw new Error("Invalid JSON from Gemini");
+  }
+
 }
 
 export function buildEvaluationPrompt({ transcript, role, level }) {
