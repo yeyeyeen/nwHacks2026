@@ -1,6 +1,7 @@
-const API_KEY = process.env.GEMINI_API_KEY;
-
 export async function evaluateWithGemini({ transcript, role, level }) {
+  const API_KEY = process.env.GEMINI_API_KEY;
+  console.log("Evaluating with Gemini");
+  console.log("API_KEY:", API_KEY);
   if (!API_KEY) {
     console.warn("GEMINI_API_KEY is not set, using mock evaluation");
     return getMockEvaluation();
@@ -23,7 +24,7 @@ export async function evaluateWithGemini({ transcript, role, level }) {
     );
 
     const data = await response.json();
-    
+
     if (!response.ok) {
       console.error("Gemini API Error:", data);
       console.warn("Gemini API unavailable, using mock evaluation");
