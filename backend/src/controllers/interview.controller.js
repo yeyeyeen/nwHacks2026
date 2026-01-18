@@ -4,9 +4,11 @@ import {
   submitAnswer,
   getSession,
   getSessionAnswers,
-  endInterviewSession
+  endInterviewSession,
+  buildTranscriptFromSession
 } from '../services/interview.service.js';
 import { textToSpeech, speechToText } from '../services/elevenlabs.service.js';
+import { evaluateWithGemini } from '../services/gemini.service.js';
 
 /**
  * Start a new interview session
@@ -247,21 +249,31 @@ export async function endInterview(req, res) {
     const { sessionId } = req.params;
 
     if (!sessionId) {
-      return res.status(400).json({ error: 'sessionId is required' });
+      return res.status(400).json({ error: "sessionId is required" });
     }
 
-    const summary = endInterviewSession(sessionId);
+    const session = getSession(sessionId);
+
+    // Build transcript
+    const transcript = buildTranscriptFromSession(session);
+
+    // Evaluate
+    const evaluation = await evaluateWithGemini({
+      transcript,
+      role: session.jobSpec.role,
+      level: session.jobSpec.level
+    });
 
     res.json({
       success: true,
-      ...summary,
-      message: 'Interview session ended successfully'
+      sessionId,
+      transcript,
+      evaluation
     });
   } catch (error) {
-    console.error('End Interview Error:', error);
-    res.status(500).json({ 
-      error: 'Failed to end interview',
-      details: error.message 
+    console.error("End Interview Error:", error);
+    res.status(500).json({
+      error: "Failed to end interview and evaluate"
     });
   }
 }

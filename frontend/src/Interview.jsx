@@ -15,6 +15,31 @@ const Interview = () => {
     const [isPlayingAudio, setIsPlayingAudio] = useState(false);
     const [mediaRecorder, setMediaRecorder] = useState(null);
 
+    const finishInterview = async () => {
+        try {
+            setIsLoading(true);
+
+            const res = await fetch(
+            `http://localhost:3000/api/interview/${sessionId}/end`,
+            { method: "POST" }
+            );
+
+            const data = await res.json();
+
+            navigate(`/results/${sessionId}`, {
+            state: {
+                evaluation: data.evaluation,
+                transcript: data.transcript
+            }
+            });
+        } catch (err) {
+            console.error(err);
+            setError("Failed to evaluate interview");
+        } finally {
+            setIsLoading(false);
+        }
+        };
+
     // Fetch the current question when component mounts or after submitting an answer
     const fetchQuestion = async () => {
         try {
@@ -23,7 +48,7 @@ const Interview = () => {
             const data = await response.json();
 
             if (data.completed) {
-                setIsCompleted(true);
+                finishInterview();
             } else if (data.success) {
                 setCurrentQuestion(data);
             } else {
@@ -122,7 +147,7 @@ const Interview = () => {
                 if (data.hasMoreQuestions) {
                     fetchQuestion();
                 } else {
-                    setIsCompleted(true);
+                    finishInterview();
                 }
             } else {
                 setError(data.error || 'Failed to submit voice answer');
@@ -159,7 +184,7 @@ const Interview = () => {
                 if (data.hasMoreQuestions) {
                     fetchQuestion(); // Fetch next question
                 } else {
-                    setIsCompleted(true);
+                    finishInterview();
                 }
             } else {
                 setError(data.error || 'Failed to submit answer');

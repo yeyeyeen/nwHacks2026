@@ -254,15 +254,7 @@ export function getSession(sessionId) {
     throw new Error('Session not found');
   }
   
-  return {
-    sessionId: session.sessionId,
-    userId: session.userId,
-    status: session.status,
-    currentQuestionIndex: session.currentQuestionIndex,
-    totalQuestions: session.questions.length,
-    answersSubmitted: session.answers.length,
-    startedAt: session.startedAt
-  };
+  return session;
 }
 
 /**
@@ -302,4 +294,12 @@ export function endInterviewSession(sessionId) {
     startedAt: session.startedAt,
     completedAt: session.completedAt
   };
+}
+
+export function buildTranscriptFromSession(session) {
+  return session.answers
+    .map((a, i) => {
+      return `Question ${i + 1}: ${a.question}\nAnswer: ${a.answer}`;
+    })
+    .join("\n\n");
 }
