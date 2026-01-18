@@ -3,8 +3,65 @@ import { Readable } from 'stream';
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 
-// Default voice ID for George (a good general voice)
-const DEFAULT_VOICE_ID = 'JBFqnCBsd6RMkjVDRZzb';
+// Available interviewer voices with their characteristics
+const INTERVIEWER_VOICES = [
+  {
+    id: 'JBFqnCBsd6RMkjVDRZzb',
+    name: 'George',
+    description: 'Professional and warm male voice',
+    gender: 'male'
+  },
+  {
+    id: 'pNInz6obpgDQGcFmaJgB',
+    name: 'Adam',
+    description: 'Deep and authoritative male voice',
+    gender: 'male'
+  },
+  {
+    id: 'EXAVITQu4vr4xnSDxMaL',
+    name: 'Sarah',
+    description: 'Clear and friendly female voice',
+    gender: 'female'
+  },
+  {
+    id: 'nPczCjzI2devNBz1zQrb',
+    name: 'Brian',
+    description: 'Confident and energetic male voice',
+    gender: 'male'
+  },
+  {
+    id: 'N2lVS1w4EtoT3dr4eOWO',
+    name: 'Callum',
+    description: 'Calm and professional male voice',
+    gender: 'male'
+  },
+  {
+    id: 'XrExE9yKIg1WjnnlVkGX',
+    name: 'Matilda',
+    description: 'Warm and supportive female voice',
+    gender: 'female'
+  }
+];
+
+// Default voice ID (fallback)
+const DEFAULT_VOICE_ID = INTERVIEWER_VOICES[0].id;
+
+/**
+ * Get a random voice from the available interviewer voices
+ * @returns {Object} Voice object with id, name, and description
+ */
+export function getRandomVoice() {
+  const randomIndex = Math.floor(Math.random() * INTERVIEWER_VOICES.length);
+  return INTERVIEWER_VOICES[randomIndex];
+}
+
+/**
+ * Get all available voices
+ * @returns {Array} Array of voice objects
+ */
+export function getAllVoices() {
+  return INTERVIEWER_VOICES;
+}
 
 // Lazy-initialize ElevenLabs client
 let elevenlabsClient = null;

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
@@ -31,8 +31,12 @@ const Dashboard = () => {
             
             if (data.success) {
                 console.log('Interview started:', data);
-                // Navigate to interview page with sessionId
-                navigate(`/interview/${data.sessionId}`);
+                // Navigate to interview page with sessionId and voice info
+                navigate(`/interview/${data.sessionId}`, {
+                    state: {
+                        voice: data.voice
+                    }
+                });
             } else {
                 alert('Failed to start interview: ' + (data.error || 'Unknown error'));
             }
