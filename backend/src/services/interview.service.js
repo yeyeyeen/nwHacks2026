@@ -79,7 +79,7 @@ Make questions natural and conversational. Include the question text only, no ad
 `;
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -215,8 +215,8 @@ export function submitAnswer(sessionId, questionId, answer, answerType = 'text')
   const currentIndex = session.currentQuestionIndex;
   const currentQuestion = session.questions[currentIndex];
   
-  if (currentQuestion.id !== questionId) {
-    throw new Error('Question ID mismatch');
+  if (!currentQuestion) {
+    throw new Error('No more questions available');
   }
   
   // Store the answer

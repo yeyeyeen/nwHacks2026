@@ -13,7 +13,7 @@ export async function evaluateWithGemini({ transcript, role, level }) {
     // Try v1 API with gemini-2.0-flash (latest model)
     console.log("CALLING GEMINI API");
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -40,7 +40,12 @@ export async function evaluateWithGemini({ transcript, role, level }) {
     }
 
     try {
-      return JSON.parse(text);
+      // Extract JSON object from the text (handles markdown formatting)
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("No JSON object found in response");
+      }
+      return JSON.parse(jsonMatch[0]);
     } catch (e) {
       console.error("Raw Gemini output:", text);
       console.warn("Invalid JSON from Gemini, using mock evaluation");
